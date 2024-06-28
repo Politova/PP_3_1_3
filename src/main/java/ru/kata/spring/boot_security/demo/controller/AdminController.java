@@ -13,6 +13,7 @@ import java.util.List;
 
 
 @Controller
+@Secured("ROLE_ADMIN")
 public class AdminController {
     @Autowired
     private UserServiceImp userService;
@@ -20,13 +21,11 @@ public class AdminController {
     @Autowired
     private RoleService roleService;
     @GetMapping("/admin")
-    @Secured("ROLE_ADMIN")
     public String displayAllUsers(Model model) {
         model.addAttribute("userList", userService.getAllUsers());
         return "admin";
     }
     @GetMapping("/admin/addUser")
-    @Secured("ROLE_ADMIN")
     public String displayNewUserForm(Model model) {
         model.addAttribute("roles", roleService.getAllRoles());
         model.addAttribute("headerMessage", "Добавить пользователя");
@@ -34,16 +33,19 @@ public class AdminController {
         return "addUser";
     }
 
+
     @PostMapping("/admin/editUser")
-    @Secured("ROLE_ADMIN")
     public String updateUsers(@ModelAttribute("user") User user, @RequestParam(value = "nameRoles", required = false) String[] roles) {
-        userService.getUserAndRoles(user, roles);
-        userService.saveUser(user);
-        return "redirect:/admin";
+        if(user.getId() != null) {
+            userService.getUserAndRoles(user, roles);
+            userService.saveUser(user);
+            return "redirect:/admin";
+        } else {
+            return "error";
+        }
     }
 
     @GetMapping("/admin/editUser")
-    @Secured("ROLE_ADMIN")
     public String displayEditUserForm(@RequestParam("id") Long id, Model model) {
         User user = userService.getUserById(id);
         model.addAttribute("roles", roleService.getAllRoles());
@@ -53,17 +55,18 @@ public class AdminController {
     }
 
     @PostMapping("/admin/addUser")
-    @Secured("ROLE_ADMIN")
     String create(@ModelAttribute("user") User user, @RequestParam(name = "roles", required = false) List<Long> roleId) {
         userService.getNotNullRole(user);
         userService.saveUser(user);
         return "redirect:/admin";
     }
 
+
     @GetMapping("/admin/deleteUser")
-    @Secured("ROLE_ADMIN")
     public String deleteUserById(@RequestParam("id") Long id) {
-        userService.deleteUser(id);
+        if(userService.getUserById(id) != null) {
+            userService.deleteUser(id);
+        }
         return "redirect:/admin";
     }
 
@@ -72,8 +75,16 @@ public class AdminController {
     public String  deleteUser(@RequestParam(required = true, defaultValue = "" ) Long userId,
                               @RequestParam(required = true, defaultValue = "" ) String action,
                               Model model) {
-        if (action.equals("delete")){
-            userService.deleteUser(userId);
+        if (userId != null) {
+            if (userService.getUserById(userId) != null) {
+                if (action.equals("delete")){
+                    userService.deleteUser(userId);
+                }
+            } else {
+                model.addAttribute("error", "User not found");
+            }
+        } else {
+            model.addAttribute("error", "Invalid user ID");
         }
         return "redirect:/admin";
     }
