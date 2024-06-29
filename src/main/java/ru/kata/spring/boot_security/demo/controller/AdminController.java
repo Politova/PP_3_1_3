@@ -14,18 +14,25 @@ import java.util.List;
 
 @Controller
 @Secured("ROLE_ADMIN")
+@GetMapping("/admin")
 public class AdminController {
     @Autowired
     private UserServiceImp userService;
 
     @Autowired
+    public AdminController(UserServiceImp userService) {
+        this.userService = userService;
+    }
+
+    @Autowired
     private RoleService roleService;
-    @GetMapping("/admin")
+
+    @GetMapping()
     public String displayAllUsers(Model model) {
         model.addAttribute("userList", userService.getAllUsers());
         return "admin";
     }
-    @GetMapping("/admin/addUser")
+    @GetMapping("/addUser")
     public String displayNewUserForm(Model model) {
         model.addAttribute("roles", roleService.getAllRoles());
         model.addAttribute("headerMessage", "Добавить пользователя");
@@ -34,7 +41,7 @@ public class AdminController {
     }
 
 
-    @PostMapping("/admin/editUser")
+    @PostMapping("/editUser")
     public String updateUsers(@ModelAttribute("user") User user, @RequestParam(value = "nameRoles", required = false) String[] roles) {
         if(user.getId() != null) {
             userService.getUserAndRoles(user, roles);
@@ -45,7 +52,7 @@ public class AdminController {
         }
     }
 
-    @GetMapping("/admin/editUser")
+    @GetMapping("/editUser")
     public String displayEditUserForm(@RequestParam("id") Long id, Model model) {
         User user = userService.getUserById(id);
         model.addAttribute("roles", roleService.getAllRoles());
@@ -54,7 +61,16 @@ public class AdminController {
         return "editUser";
     }
 
-    @PostMapping("/admin/addUser")
+    @PostMapping("/addUser")
+
+    public String addUser (@ModelAttribute("user") User user,
+                           @RequestParam(value = "rolesList") String [] roles,
+                           @ModelAttribute("pass") String pass) {
+
+        userService.saveUser(user);
+        return "redirect:/admin";
+    }
+
     String create(@ModelAttribute("user") User user, @RequestParam(name = "roles", required = false) List<Long> roleId) {
         userService.getNotNullRole(user);
         userService.saveUser(user);
@@ -62,7 +78,7 @@ public class AdminController {
     }
 
 
-    @GetMapping("/admin/deleteUser")
+    @GetMapping("/deleteUser")
     public String deleteUserById(@RequestParam("id") Long id) {
         if(userService.getUserById(id) != null) {
             userService.deleteUser(id);
@@ -71,7 +87,7 @@ public class AdminController {
     }
 
 
-    @PostMapping("/admin")
+    @PostMapping()
     public String  deleteUser(@RequestParam(required = true, defaultValue = "" ) Long userId,
                               @RequestParam(required = true, defaultValue = "" ) String action,
                               Model model) {
